@@ -12,7 +12,7 @@ local CHARGE_MAX = 100
 
 -- Initialize UI
 local window = DrRayLibrary:Load("Made by @Voxol-", "Default")
-local tab1 = DrRayLibrary.newTab("On Youtube", "ImageIdHere")
+local tab1 = DrRayLibrary.newTab("Youtube", "ImageIdHere")
 
 -- State management
 local State = {
@@ -115,6 +115,12 @@ State.character = State.player.Character or State.player.CharacterAdded:Wait()
 tab1.newButton("Update", "Reconnect player values", function()
     stopAllConnections()
     handleCharacterAdded(State.player.Character)
+end)
+
+tab1.newButton("Reset Spin Wheel", "Resets the wheel spin cooldown", function()
+    if State.character and State.character:FindFirstChild("LastWheelSpin") then
+        State.character.LastWheelSpin.Value = 0
+    end
 end)
 
 tab1.newToggle("FEnergy", "Full Energy!", false, function(state)
