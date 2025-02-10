@@ -1,8 +1,7 @@
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/script-netizen/goon/refs/heads/main/encounters.lua"))()
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("ULTRA-Encounters", "Ocean")
-local Tab1 = Window:NewTab("Player")
-local Tab1Section = Tab1:NewSection("Values")
+local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
+local window = DrRayLibrary:Load("DrRay", "Default")
+local tab = window:newTab("Player", "ImageIdHere") -- Replace "ImageIdHere" if needed
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -14,7 +13,7 @@ local energyConnection
 local chargeConnection
 local overhealConnection
 
--- Helper function to stop a connection (reduces code duplication)
+-- Helper function to stop a connection
 local function stopConnection(connection)
     if connection then
         connection:Disconnect()
@@ -22,12 +21,12 @@ local function stopConnection(connection)
     end
 end
 
-
-local Toggle = Tab1Section:NewToggle("FEnergy", "Full Energy!", function(state)
+-- Full Energy Toggle
+tab.newToggle("FEnergy", "Full Energy!", false, function(state)
     if state then
         if not energyConnection then
             energyConnection = RunService.Heartbeat:Connect(function()
-                if character and character:FindFirstChild("Energy") then -- Check again just in case
+                if character and character:FindFirstChild("Energy") then
                     character.Energy.Value = 101
                 end
             end)
@@ -37,11 +36,12 @@ local Toggle = Tab1Section:NewToggle("FEnergy", "Full Energy!", function(state)
     end
 end)
 
-local Toggle2 = Tab1Section:NewToggle("FCharge", "Full Charge!", function(state)
+-- Full Charge Toggle
+tab.newToggle("Full Charge", "Full Charge!", false, function(state)
     if state then
         if not chargeConnection then
             chargeConnection = RunService.Heartbeat:Connect(function()
-                if character and character:FindFirstChild("Charge") then -- Check again just in case
+                if character and character:FindFirstChild("Charge") then
                     character.Charge.Value = 100
                 end
             end)
@@ -51,18 +51,18 @@ local Toggle2 = Tab1Section:NewToggle("FCharge", "Full Charge!", function(state)
     end
 end)
 
-
-local Toggle3 = Tab1Section:NewToggle("OVERheal", "Overheal!", function(state)
+-- Overheal Toggle
+tab.newToggle("Overheal", "Overheal!", false, function(state)
     if state then
         if not overhealConnection then
-          local originalDamage = nil -- Store original damage value
+            local originalDamage = nil
             overhealConnection = RunService.Heartbeat:Connect(function()
                 if character and character:FindFirstChild("DamageTracker") then
-                  local damageTracker = character.DamageTracker
-                  if originalDamage == nil then -- Get it only once.
-                    originalDamage = damageTracker.Value
-                  end
-                    DamageTracker.Value = math.max(0, originalDamage - 2) -- Subtract 2, but don't go below 0
+                    local damageTracker = character.DamageTracker
+                    if originalDamage == nil then
+                        originalDamage = damageTracker.Value
+                    end
+                    damageTracker.Value = math.max(0, originalDamage - 2)
                 end
             end)
         end
@@ -70,3 +70,9 @@ local Toggle3 = Tab1Section:NewToggle("OVERheal", "Overheal!", function(state)
         stopConnection(overhealConnection)
     end
 end)
+
+
+-- Example of setting theme (optional):
+local mainColor = Color3.fromRGB(50, 75, 100) -- Example RGB values
+local secondColor = Color3.fromRGB(75, 100, 125) -- Example RGB values
+window:SetTheme(mainColor, secondColor)
