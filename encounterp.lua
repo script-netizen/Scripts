@@ -21,6 +21,55 @@ local function stopConnection(connection)
     end
 end
 
+-- Function to update character and reconnect
+local function updateCharacterAndReconnect()
+    character = player.Character or player.CharacterAdded:Wait() -- Get the latest character
+
+    -- Stop existing connections
+    stopConnection(energyConnection)
+    stopConnection(chargeConnection)
+    stopConnection(overhealConnection)
+
+    -- Reconnect (this part is the same as in your toggle functions)
+    if tab1:GetToggleState("FEnergy") then -- Check the current toggle state
+      energyConnection = RunService.Heartbeat:Connect(function()
+          if character and character:FindFirstChild("Energy") then
+              character.Energy.Value = 101
+          end
+      end)
+    end
+
+    if tab1:GetToggleState("Full Charge") then -- Check the current toggle state
+       chargeConnection = RunService.Heartbeat:Connect(function()
+            if character and character:FindFirstChild("Charge") then
+                character.Charge.Value = 100
+            end
+        end)
+    end
+
+    if tab1:GetToggleState("Overheal") then -- Check the current toggle state
+            local originalDamage = nil
+           overhealConnection = RunService.Heartbeat:Connect(function() -- Changed to Heartbeat for initial setup
+                if character and character:FindFirstChild("DamageTracker") then
+                    local damageTracker = character.DamageTracker
+                    if originalDamage == nil then -- Get it only once.
+                        originalDamage = damageTracker.Value
+                    end
+
+                    stopConnection(overhealConnection) -- Stop Heartbeat connection
+                    overhealConnection = RunService.Heartbeat:Connect(function() -- Recreate it every .5 secs
+                        wait(.5)
+                        damageTracker.Value = math.max(0, originalDamage - 2)
+                    end)
+                end
+            end)
+    end
+end
+
+
+-- Update Button
+tab1.newButton("Update", "Update Stuff", updateCharacterAndReconnect)
+
 -- Full Energy Toggle
 tab1.newToggle("FEnergy", "Full Energy!", false, function(state)
     if state then
