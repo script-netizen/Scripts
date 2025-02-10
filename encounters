@@ -5,14 +5,19 @@ local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 -- Constants
 local ENERGY_MAX = 101
 local CHARGE_MAX = 100
+local DEFAULT_GRAVITY = 196.2
+local DEFAULT_HITBOX_SIZE = Vector3.new(2, 2, 1)
+local MAX_HITBOX_SIZE = Vector3.new(10, 10, 10)
 
 -- Initialize UI
-local window = DrRayLibrary:Load("Made by @Voxol-", "Default")
-local tab1 = DrRayLibrary.newTab("Youtube", "ImageIdHere")
+local window = DrRayLibrary:Load("DrRay!", "Default")
+local mainTab = DrRayLibrary.newTab("Main", "ImageIdHere")
+local generalTab = DrRayLibrary.newTab("General", "ImageIdHere")
 
 -- State management
 local State = {
@@ -23,14 +28,17 @@ local State = {
         charge = nil,
         autoBlock = nil,
         characterAdded = nil,
-        noCooldown = nil
+        noCooldown = nil,
+        hitboxUpdate = nil
     },
     toggleStates = {
         energy = false,
         charge = false,
         autoBlock = false,
-        noCooldown = false
-    }
+        noCooldown = false,
+        hitboxExpander = false
+    },
+    originalHitboxes = {}
 }
 
 -- Helper functions
@@ -44,6 +52,24 @@ end
 local function stopAllConnections()
     for name, _ in pairs(State.connections) do
         stopConnection(name)
+    end
+end
+
+-- Store original hitbox sizes
+local function storeOriginalHitbox(part)
+    if not State.originalHitboxes[part] then
+        State.originalHitboxes[part] = part.Size
+    end
+end
+
+-- Reset hitboxes to original size
+local function resetHitboxes()
+    if State.character then
+        for _, part in pairs(State.character:GetChildren()) do
+            if part:IsA("BasePart") and State.originalHitboxes[part] then
+                part.Size = State.originalHitboxes[part]
+            end
+        end
     end
 end
 
@@ -97,6 +123,13 @@ local function setupCharacterConnections()
                 end)
             elseif toggle == "noCooldown" then
                 setupNoCooldown()
+            elseif toggle == "hitboxExpander" then
+                -- Store original sizes when first enabled
+                for _, part in pairs(State.character:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        storeOriginalHitbox(part)
+                    end
+                end
             end
         end
     end
@@ -104,6 +137,7 @@ end
 
 local function handleCharacterAdded(char)
     State.character = char
+    State.originalHitboxes = {} -- Reset stored hitboxes
     setupCharacterConnections()
 end
 
@@ -111,19 +145,19 @@ end
 State.connections.characterAdded = State.player.CharacterAdded:Connect(handleCharacterAdded)
 State.character = State.player.Character or State.player.CharacterAdded:Wait()
 
--- UI Elements
-tab1.newButton("Update", "Reconnect player values", function()
+-- Main Tab UI Elements
+mainTab.newButton("Update", "Reconnect player values", function()
     stopAllConnections()
     handleCharacterAdded(State.player.Character)
 end)
 
-tab1.newButton("Reset Spin Wheel", "Resets the wheel spin cooldown", function()
+mainTab.newButton("Reset Spin Wheel", "Resets the wheel spin cooldown", function()
     if State.character and State.character:FindFirstChild("LastWheelSpin") then
         State.character.LastWheelSpin.Value = 0
     end
 end)
 
-tab1.newToggle("FEnergy", "Full Energy!", false, function(state)
+mainTab.newToggle("FEnergy", "Full Energy!", false, function(state)
     State.toggleStates.energy = state
     stopConnection("energy")
     
@@ -136,7 +170,7 @@ tab1.newToggle("FEnergy", "Full Energy!", false, function(state)
     end
 end)
 
-tab1.newToggle("Full Charge", "Full Charge!", false, function(state)
+mainTab.newToggle("Full Charge", "Full Charge!", false, function(state)
     State.toggleStates.charge = state
     stopConnection("charge")
     
@@ -149,7 +183,7 @@ tab1.newToggle("Full Charge", "Full Charge!", false, function(state)
     end
 end)
 
-tab1.newToggle("Auto Block", "Blocks most incoming hits (Do not block while active)", false, function(state)
+mainTab.newToggle("Auto Block", "Blocks most incoming hits (Do not block while active)", false, function(state)
     State.toggleStates.autoBlock = state
     stopConnection("autoBlock")
     
@@ -168,9 +202,35 @@ tab1.newToggle("Auto Block", "Blocks most incoming hits (Do not block while acti
     end
 end)
 
-tab1.newToggle("No Cooldown", "Removes some cooldowns (may not always work)", false, function(state)
+mainTab.newToggle("No Cooldown", "Removes some cooldowns (may not always work)", false, function(state)
     State.toggleStates.noCooldown = state
     if state then
         setupNoCooldown()
+    end
+end)
+
+-- General Tab UI Elements
+generalTab.newSlider("Gravity", "Adjust workspace gravity", 0, 196.2, 196.2, function(value)
+    Workspace.Gravity = value
+end)
+
+generalTab.newButton("Reset Gravity", "Reset to default gravity", function()
+    Workspace.Gravity = DEFAULT_GRAVITY
+end)
+
+generalTab.newToggle("Hitbox Expander", "Increases character hitbox size", false, function(state)
+    State.toggleStates.hitboxExpander = state
+    
+    if state then
+        -- Store original sizes and expand hitboxes
+        for _, part in pairs(State.character:GetChildren()) do
+            if part:IsA("BasePart") then
+                storeOriginalHitbox(part)
+                part.Size = MAX_HITBOX_SIZE
+            end
+        end
+    else
+        -- Reset hitboxes to original size
+        resetHitboxes()
     end
 end)
