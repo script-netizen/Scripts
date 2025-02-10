@@ -1,7 +1,7 @@
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/script-netizen/goon/refs/heads/main/encounters.lua"))()
 local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
-local window = DrRayLibrary:Load("DrRay", "Default")
-local tab = DrRayLibrary:newTab("Player", "ImageIdHere")
+local window = DrRayLibrary:Load("DrRay!", "Default")
+local tab1 = DrRayLibrary.newTab("Tab 1", "ImageIdHere") -- Replace "ImageIdHere" if needed
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -22,7 +22,7 @@ local function stopConnection(connection)
 end
 
 -- Full Energy Toggle
-tab.newToggle("FEnergy", "Full Energy!", false, function(state)
+tab1.newToggle("FEnergy", "Full Energy!", false, function(state)
     if state then
         if not energyConnection then
             energyConnection = RunService.Heartbeat:Connect(function()
@@ -37,7 +37,7 @@ tab.newToggle("FEnergy", "Full Energy!", false, function(state)
 end)
 
 -- Full Charge Toggle
-tab.newToggle("Full Charge", "Full Charge!", false, function(state)
+tab1.newToggle("Full Charge", "Full Charge!", false, function(state)
     if state then
         if not chargeConnection then
             chargeConnection = RunService.Heartbeat:Connect(function()
@@ -52,7 +52,7 @@ tab.newToggle("Full Charge", "Full Charge!", false, function(state)
 end)
 
 -- Overheal Toggle
-tab.newToggle("Overheal", "Overheal!", false, function(state)
+tab1.newToggle("Overheal", "Overheal!", false, function(state)
     if state then
         if not overhealConnection then
             local originalDamage = nil
