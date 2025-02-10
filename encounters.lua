@@ -1,7 +1,7 @@
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/script-netizen/goon/refs/heads/main/encounters.lua"))()
 local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
 local window = DrRayLibrary:Load("DrRay", "Default")
-local tab = window:newTab("Player", "ImageIdHere") -- Replace "ImageIdHere" if needed
+local tab = window:newTab("Player", "ImageIdHere")
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -56,13 +56,18 @@ tab.newToggle("Overheal", "Overheal!", false, function(state)
     if state then
         if not overhealConnection then
             local originalDamage = nil
-            overhealConnection = RunService.Heartbeat:Connect(function()
+            overhealConnection = RunService.Heartbeat:Connect(function() -- Changed to Heartbeat for initial setup
                 if character and character:FindFirstChild("DamageTracker") then
                     local damageTracker = character.DamageTracker
-                    if originalDamage == nil then
+                    if originalDamage == nil then -- Get it only once.
                         originalDamage = damageTracker.Value
                     end
-                    damageTracker.Value = math.max(0, originalDamage - 2)
+
+                    stopConnection(overhealConnection) -- Stop Heartbeat connection
+                    overhealConnection = RunService.Heartbeat:Connect(function() -- Recreate it every .5 secs
+                        wait(.5)
+                        damageTracker.Value = math.max(0, originalDamage - 2)
+                    end)
                 end
             end)
         end
@@ -70,9 +75,3 @@ tab.newToggle("Overheal", "Overheal!", false, function(state)
         stopConnection(overhealConnection)
     end
 end)
-
-
--- Example of setting theme (optional):
-local mainColor = Color3.fromRGB(50, 75, 100) -- Example RGB values
-local secondColor = Color3.fromRGB(75, 100, 125) -- Example RGB values
-window:SetTheme(mainColor, secondColor)
