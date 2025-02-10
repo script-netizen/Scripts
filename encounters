@@ -11,8 +11,8 @@ local ENERGY_MAX = 101
 local CHARGE_MAX = 100
 
 -- Initialize UI
-local window = DrRayLibrary:Load("DrRay!", "Default")
-local tab1 = DrRayLibrary.newTab("Tab 1", "ImageIdHere")
+local window = DrRayLibrary:Load("Made by @Voxol-", "Default")
+local tab1 = DrRayLibrary.newTab("On Youtube", "ImageIdHere")
 
 -- State management
 local State = {
