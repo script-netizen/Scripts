@@ -4,11 +4,11 @@ local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 -- Services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Constants
 local ENERGY_MAX = 101
 local CHARGE_MAX = 100
-local DAMAGE_UPDATE_INTERVAL = 0.5
 
 -- Initialize UI
 local window = DrRayLibrary:Load("DrRay!", "Default")
@@ -21,14 +21,15 @@ local State = {
     connections = {
         energy = nil,
         charge = nil,
-        overheal = nil,
-        characterAdded = nil
+        autoBlock = nil,
+        characterAdded = nil,
+        noCooldown = nil
     },
-    originalDamage = nil,
     toggleStates = {
         energy = false,
         charge = false,
-        overheal = false
+        autoBlock = false,
+        noCooldown = false
     }
 }
 
@@ -43,6 +44,24 @@ end
 local function stopAllConnections()
     for name, _ in pairs(State.connections) do
         stopConnection(name)
+    end
+end
+
+-- No Cooldown hook function
+local function setupNoCooldown()
+    if State.toggleStates.noCooldown then
+        spawn(function()
+            local oldWait
+            oldWait = hookfunction(wait, function(duration)
+                if duration and duration ~= 0 and 
+                   tostring(getcallingscript(oldWait)) ~= "nil" and 
+                   tonumber(duration) < 2.5 and 
+                   State.toggleStates.noCooldown then
+                    return oldWait()
+                end
+                return oldWait(duration)
+            end)
+        end)
     end
 end
 
@@ -64,17 +83,20 @@ local function setupCharacterConnections()
                         State.character.Charge.Value = CHARGE_MAX
                     end
                 end)
-            elseif toggle == "overheal" then
-                State.connections.overheal = RunService.Heartbeat:Connect(function()
-                    if State.character:FindFirstChild("DamageTracker") then
-                        local damageTracker = State.character.DamageTracker
-                        if not State.originalDamage then
-                            State.originalDamage = damageTracker.Value
+            elseif toggle == "autoBlock" then
+                State.connections.autoBlock = RunService.Heartbeat:Connect(function()
+                    spawn(function()
+                        if State.character then
+                            wait()
+                            ReplicatedStorage.RemoteEvents.ReplicateGuardOn:FireServer()
+                            State.character.Guarding.Value = false
+                            wait()
+                            ReplicatedStorage.RemoteEvents.ReplicateGuardOff:FireServer()
                         end
-                        damageTracker.Value = math.max(0, State.originalDamage - 2)
-                        task.wait(DAMAGE_UPDATE_INTERVAL)
-                    end
+                    end)
                 end)
+            elseif toggle == "noCooldown" then
+                setupNoCooldown()
             end
         end
     end
@@ -82,7 +104,6 @@ end
 
 local function handleCharacterAdded(char)
     State.character = char
-    State.originalDamage = nil
     setupCharacterConnections()
 end
 
@@ -93,7 +114,6 @@ State.character = State.player.Character or State.player.CharacterAdded:Wait()
 -- UI Elements
 tab1.newButton("Update", "Reconnect player values", function()
     stopAllConnections()
-    State.originalDamage = nil
     handleCharacterAdded(State.player.Character)
 end)
 
@@ -123,20 +143,28 @@ tab1.newToggle("Full Charge", "Full Charge!", false, function(state)
     end
 end)
 
-tab1.newToggle("Overheal", "Overheal!", false, function(state)
-    State.toggleStates.overheal = state
-    stopConnection("overheal")
+tab1.newToggle("Auto Block", "Blocks most incoming hits (Do not block while active)", false, function(state)
+    State.toggleStates.autoBlock = state
+    stopConnection("autoBlock")
     
     if state then
-        State.connections.overheal = RunService.Heartbeat:Connect(function()
-            if State.character and State.character:FindFirstChild("DamageTracker") then
-                local damageTracker = State.character.DamageTracker
-                if not State.originalDamage then
-                    State.originalDamage = damageTracker.Value
+        State.connections.autoBlock = RunService.Heartbeat:Connect(function()
+            spawn(function()
+                if State.character then
+                    wait()
+                    ReplicatedStorage.RemoteEvents.ReplicateGuardOn:FireServer()
+                    State.character.Guarding.Value = false
+                    wait()
+                    ReplicatedStorage.RemoteEvents.ReplicateGuardOff:FireServer()
                 end
-                damageTracker.Value = math.max(0, State.originalDamage - 2)
-                task.wait(DAMAGE_UPDATE_INTERVAL)
-            end
+            end)
         end)
+    end
+end)
+
+tab1.newToggle("No Cooldown", "Removes some cooldowns (may not always work)", false, function(state)
+    State.toggleStates.noCooldown = state
+    if state then
+        setupNoCooldown()
     end
 end)
