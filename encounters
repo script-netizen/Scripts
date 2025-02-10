@@ -5,14 +5,11 @@ local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 
 -- Constants
 local ENERGY_MAX = 101
 local CHARGE_MAX = 100
-local DEFAULT_GRAVITY = 196.2
-local DEFAULT_HITBOX_SIZE = Vector3.new(2, 2, 1)
-local MAX_HITBOX_SIZE = Vector3.new(10, 10, 10)
+local HITBOX_SIZE = Vector3.new(10, 10, 10)
 
 -- Initialize UI
 local window = DrRayLibrary:Load("DrRay!", "Default")
@@ -55,20 +52,26 @@ local function stopAllConnections()
     end
 end
 
--- Store original hitbox sizes
-local function storeOriginalHitbox(part)
-    if not State.originalHitboxes[part] then
-        State.originalHitboxes[part] = part.Size
-    end
-end
-
 -- Reset hitboxes to original size
 local function resetHitboxes()
-    if State.character then
-        for _, part in pairs(State.character:GetChildren()) do
-            if part:IsA("BasePart") and State.originalHitboxes[part] then
-                part.Size = State.originalHitboxes[part]
+    for player, size in pairs(State.originalHitboxes) do
+        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.Size = size
+        end
+    end
+    State.originalHitboxes = {}
+end
+
+-- Update hitboxes for all players except local player
+local function updateHitboxes()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= State.player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = player.Character.HumanoidRootPart
+            if not State.originalHitboxes[player] then
+                State.originalHitboxes[player] = rootPart.Size
             end
+            rootPart.Size = HITBOX_SIZE
+            rootPart.Transparency = 0.4
         end
     end
 end
@@ -124,12 +127,9 @@ local function setupCharacterConnections()
             elseif toggle == "noCooldown" then
                 setupNoCooldown()
             elseif toggle == "hitboxExpander" then
-                -- Store original sizes when first enabled
-                for _, part in pairs(State.character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        storeOriginalHitbox(part)
-                    end
-                end
+                updateHitboxes()
+                -- Set up connection to handle new players
+                State.connections.hitboxUpdate = RunService.Heartbeat:Connect(updateHitboxes)
             end
         end
     end
@@ -137,7 +137,6 @@ end
 
 local function handleCharacterAdded(char)
     State.character = char
-    State.originalHitboxes = {} -- Reset stored hitboxes
     setupCharacterConnections()
 end
 
@@ -210,27 +209,14 @@ mainTab.newToggle("No Cooldown", "Removes some cooldowns (may not always work)",
 end)
 
 -- General Tab UI Elements
-generalTab.newSlider("Gravity", "Adjust workspace gravity", 0, 196.2, 196.2, function(value)
-    Workspace.Gravity = value
-end)
-
-generalTab.newButton("Reset Gravity", "Reset to default gravity", function()
-    Workspace.Gravity = DEFAULT_GRAVITY
-end)
-
-generalTab.newToggle("Hitbox Expander", "Increases character hitbox size", false, function(state)
+generalTab.newToggle("Hitbox Expander", "Increases other players' hitbox size", false, function(state)
     State.toggleStates.hitboxExpander = state
+    stopConnection("hitboxUpdate")
     
     if state then
-        -- Store original sizes and expand hitboxes
-        for _, part in pairs(State.character:GetChildren()) do
-            if part:IsA("BasePart") then
-                storeOriginalHitbox(part)
-                part.Size = MAX_HITBOX_SIZE
-            end
-        end
+        updateHitboxes()
+        State.connections.hitboxUpdate = RunService.Heartbeat:Connect(updateHitboxes)
     else
-        -- Reset hitboxes to original size
         resetHitboxes()
     end
 end)
