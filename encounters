@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Constants
+-- Constants (default values)
 local ENERGY_MAX = 101
 local CHARGE_MAX = 100
 local HITBOX_SIZE = Vector3.new(10, 10, 10)
@@ -14,7 +14,7 @@ local HITBOX_SIZE = Vector3.new(10, 10, 10)
 -- Initialize UI
 local window = DrRayLibrary:Load("DrRay!", "Default")
 local mainTab = DrRayLibrary.newTab("Main", "ImageIdHere")
-local generalTab = DrRayLibrary.newTab("General", "ImageIdHere")
+local settingsTab = DrRayLibrary.newTab("Settings", "ImageIdHere")
 
 -- State management
 local State = {
@@ -25,17 +25,14 @@ local State = {
         charge = nil,
         autoBlock = nil,
         characterAdded = nil,
-        noCooldown = nil,
-        hitboxUpdate = nil
+        noCooldown = nil
     },
     toggleStates = {
         energy = false,
         charge = false,
         autoBlock = false,
-        noCooldown = false,
-        hitboxExpander = false
-    },
-    originalHitboxes = {}
+        noCooldown = false
+    }
 }
 
 -- Helper functions
@@ -49,30 +46,6 @@ end
 local function stopAllConnections()
     for name, _ in pairs(State.connections) do
         stopConnection(name)
-    end
-end
-
--- Reset hitboxes to original size
-local function resetHitboxes()
-    for player, size in pairs(State.originalHitboxes) do
-        if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            player.Character.HumanoidRootPart.Size = size
-        end
-    end
-    State.originalHitboxes = {}
-end
-
--- Update hitboxes for all players except local player
-local function updateHitboxes()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= State.player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local rootPart = player.Character.HumanoidRootPart
-            if not State.originalHitboxes[player] then
-                State.originalHitboxes[player] = rootPart.Size
-            end
-            rootPart.Size = HITBOX_SIZE
-            rootPart.Transparency = 0.4
-        end
     end
 end
 
@@ -126,10 +99,6 @@ local function setupCharacterConnections()
                 end)
             elseif toggle == "noCooldown" then
                 setupNoCooldown()
-            elseif toggle == "hitboxExpander" then
-                updateHitboxes()
-                -- Set up connection to handle new players
-                State.connections.hitboxUpdate = RunService.Heartbeat:Connect(updateHitboxes)
             end
         end
     end
@@ -202,15 +171,36 @@ mainTab.newToggle("No Cooldown", "Removes some cooldowns (may not always work)",
     end
 end)
 
--- General Tab UI Elements
-generalTab.newToggle("Hitbox Expander", "Increases other players' hitbox size", false, function(state)
-    State.toggleStates.hitboxExpander = state
-    stopConnection("hitboxUpdate")
-    
-    if state then
-        updateHitboxes()
-        State.connections.hitboxUpdate = RunService.Heartbeat:Connect(updateHitboxes)
+-- Settings Tab UI Elements
+settingsTab.newInput("Energy Max", "Set the maximum energy value", function(text)
+    local newValue = tonumber(text)
+    if newValue then
+        ENERGY_MAX = newValue
+        print("Energy Max set to:", ENERGY_MAX)
     else
-        resetHitboxes()
+        print("Invalid input. Please enter a number.")
+    end
+end)
+
+settingsTab.newInput("Charge Max", "Set the maximum charge value", function(text)
+    local newValue = tonumber(text)
+    if newValue then
+        CHARGE_MAX = newValue
+        print("Charge Max set to:", CHARGE_MAX)
+    else
+        print("Invalid input. Please enter a number.")
+    end
+end)
+
+settingsTab.newInput("Hitbox Size", "Set the hitbox size (format: x,y,z)", function(text)
+    local values = {}
+    for value in string.gmatch(text, "%d+") do
+        table.insert(values, tonumber(value))
+    end
+    if #values == 3 then
+        HITBOX_SIZE = Vector3.new(values[1], values[2], values[3])
+        print("Hitbox Size set to:", HITBOX_SIZE)
+    else
+        print("Invalid input. Please enter values in the format: x,y,z")
     end
 end)
