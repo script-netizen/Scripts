@@ -150,12 +150,6 @@ mainTab.newButton("Update", "Reconnect player values", function()
     handleCharacterAdded(State.player.Character)
 end)
 
-mainTab.newButton("Reset Spin Wheel", "Resets the wheel spin cooldown", function()
-    if State.character and State.character:FindFirstChild("LastWheelSpin") then
-        State.character.LastWheelSpin.Value = 0
-    end
-end)
-
 mainTab.newToggle("FEnergy", "Full Energy!", false, function(state)
     State.toggleStates.energy = state
     stopConnection("energy")
